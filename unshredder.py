@@ -3,88 +3,28 @@
 from PIL import Image
 import sys
 
+from math import sqrt
 
-def logp(pixel):
-	from math import log
-	#return log(pixel/255.0 + 1.0, 10)
-	return pixel
-
-
-def calculate_difference(v1, v2):
-	#cc
-	from math import sqrt
-	length = len(v1)
+def calculate_difference(vector_one, vector_two):
+	threshold = 0.09	
 	
-	zncc = 0.0
-	for channel in [0, 1, 2]:
-		sum1 = 0.0
-		sum2 = 0.0
-		total = 0.0
-		
-		for i in xrange(2, length-2):
-			mean_v1 = sum(map(lambda x: logp(x[channel]), v1[i-2:i+2])) / 5.0
-			mean_v2 = sum(map(lambda x: logp(x[channel]), v2[i-2:i+2])) / 5.0
-			
-			p1 = logp(v1[i][channel]) - mean_v1
-			p2 = logp(v2[i][channel]) - mean_v2
-			
-			total += p1 * p2
-			sum1 += (p1) **2
-			sum2 += (p2) **2
-		zncc += total / sqrt(sum1 * sum2)
-	return zncc
-
-def zncc(v1, v2):
-	from math import sqrt
-	length = len(v1)
-	
-	zncc = 0.0
-	for channel in [0, 1, 2]:
-		sum1 = 0.0
-		sum2 = 0.0
-		total = 0.0
-		
-		for i in xrange(2, length-2):
-			mean_v1 = sum(map(lambda x: logp(x[channel]), v1[i-2:i+2])) / 5.0
-			mean_v2 = sum(map(lambda x: logp(x[channel]), v2[i-2:i+2])) / 5.0
-			
-			p1 = logp(v1[i][channel]) - mean_v1
-			p2 = logp(v2[i][channel]) - mean_v2
-			
-			total += p1 * p2
-			sum1 += (p1) **2
-			sum2 += (p2) **2
-		zncc += total / sqrt(sum1 * sum2)
-	return zncc
-		
-	
-
-def calculate_difference2(vector_one, vector_two):
-	""" Given two vectors of pixels in RGBA format, we calculate how
-		different the two columns are. We do this by treating the column
-		as a vector of 3*n space where n is the number of rows in the
-		image. It's 3x because we treat red, green, and blue channels 
-		as individual dimensions in the vector. We use a simple euclidean
-		distance measure as the difference. Note that we calculate the
-		distance in log space to emphasize the difference between
-		non-highlight colors. """
-
 	from math import sqrt, log
-	sum_squared_differences = 0.0
-	for pixel in xrange(1, len(vector_one)-1):
+	ssd = 0.0
+	for i in xrange(3, len(vector_one)-3):
+		sum_squared_differences = 0.0
 		for channel in [0, 1, 2]:
-			chan1 = (vector_one[pixel][channel] + vector_one[pixel+1][channel] + vector_one[pixel-1][channel]) / 3.0
-			chan2 = (vector_two[pixel][channel] + vector_two[pixel+1][channel] + vector_two[pixel-1][channel]) / 3.0
-			#chan1 = vector_one[pixel][channel] / 255.0 
-			#chan2 = vector_two[pixel][channel] / 255.0
-			
+			chan1 = sum(map(lambda x: x[channel], vector_one[i-3:i+3])) / 7.0
+			chan2 = sum(map(lambda x: x[channel], vector_two[i-3:i+3])) / 7.0
 			chan1 /= 255.0
 			chan2 /= 255.0
 			
-			diff_squared = (log(chan1 + 1.0 / 1.0, 10) - log(chan2 + 1.0, 10))**2
+			diff_squared = (log(chan1 + 1.0, 2) - log(chan2 + 1.0, 2))**2
 			sum_squared_differences += diff_squared
 			
-	return sum_squared_differences
+		s = sqrt(sum_squared_differences) 	
+		if s > threshold:
+			ssd += 1.0
+	return ssd
 
 def _match(vref,vectors):
 	distances1 = [calculate_difference(vref, v) for v in vectors]
@@ -142,9 +82,9 @@ def main(argv):
 
 	ordered_shreds = []
 	ordered_shreds.append(shreds.pop())
-	#while len(shreds) > 0:
-	for i in xrange(10):
-		print "insert i-th=%i shred" % i
+	while len(shreds) > 0:
+	#for i in xrange(6):
+		print "insert i-th=%s shred" % str(len(ordered_shreds)+1)
 		(i_left, min_left) = ordered_shreds[0].match_left(shreds)
 		print "Min LEFT :",
 		print  (min_left, i_left) 
@@ -154,8 +94,10 @@ def main(argv):
 		
 		
 		if min_left < min_right :
+			print "-> left insert"
 			ordered_shreds.insert(0, shreds.pop(i_left))
 		else :
+			print "-> right insert"
 			ordered_shreds.append(shreds.pop(i_right))
 			
 
@@ -172,6 +114,14 @@ def main(argv):
 	# Output the new image
 	unshredded.save('unshredded.png', 'png')
 	unshredded.show()
+
+
+
+	leftovers = Image.new('RGBA', image.size)
+	for (shred_number, shred)in enumerate(shreds):
+		destination_point = (shred_width * shred_number, 0)
+		leftovers.paste(shred.image, destination_point)
+	#leftovers.show()
 
 if __name__ == "__main__":
     main(sys.argv)			
