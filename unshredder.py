@@ -4,7 +4,62 @@ from PIL import Image
 import sys
 
 
-def calculate_difference(vector_one, vector_two):
+def logp(pixel):
+	from math import log
+	#return log(pixel/255.0 + 1.0, 10)
+	return pixel
+
+
+def calculate_difference(v1, v2):
+	#cc
+	from math import sqrt
+	length = len(v1)
+	
+	zncc = 0.0
+	for channel in [0, 1, 2]:
+		sum1 = 0.0
+		sum2 = 0.0
+		total = 0.0
+		
+		for i in xrange(2, length-2):
+			mean_v1 = sum(map(lambda x: logp(x[channel]), v1[i-2:i+2])) / 5.0
+			mean_v2 = sum(map(lambda x: logp(x[channel]), v2[i-2:i+2])) / 5.0
+			
+			p1 = logp(v1[i][channel]) - mean_v1
+			p2 = logp(v2[i][channel]) - mean_v2
+			
+			total += p1 * p2
+			sum1 += (p1) **2
+			sum2 += (p2) **2
+		zncc += total / sqrt(sum1 * sum2)
+	return zncc
+
+def zncc(v1, v2):
+	from math import sqrt
+	length = len(v1)
+	
+	zncc = 0.0
+	for channel in [0, 1, 2]:
+		sum1 = 0.0
+		sum2 = 0.0
+		total = 0.0
+		
+		for i in xrange(2, length-2):
+			mean_v1 = sum(map(lambda x: logp(x[channel]), v1[i-2:i+2])) / 5.0
+			mean_v2 = sum(map(lambda x: logp(x[channel]), v2[i-2:i+2])) / 5.0
+			
+			p1 = logp(v1[i][channel]) - mean_v1
+			p2 = logp(v2[i][channel]) - mean_v2
+			
+			total += p1 * p2
+			sum1 += (p1) **2
+			sum2 += (p2) **2
+		zncc += total / sqrt(sum1 * sum2)
+	return zncc
+		
+	
+
+def calculate_difference2(vector_one, vector_two):
 	""" Given two vectors of pixels in RGBA format, we calculate how
 		different the two columns are. We do this by treating the column
 		as a vector of 3*n space where n is the number of rows in the
@@ -88,7 +143,7 @@ def main(argv):
 	ordered_shreds = []
 	ordered_shreds.append(shreds.pop())
 	#while len(shreds) > 0:
-	for i in xrange(12):
+	for i in xrange(10):
 		print "insert i-th=%i shred" % i
 		(i_left, min_left) = ordered_shreds[0].match_left(shreds)
 		print "Min LEFT :",
