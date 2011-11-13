@@ -16,16 +16,37 @@ def calculate_difference(vector_one, vector_two):
 
 	from math import sqrt, log
 	sum_squared_differences = 0.0
-	for (pixel1,pixel2) in zip(vector_one, vector_two):
-		sum_line = 0.0
-		for (chan1,chan2) in zip(pixel1, pixel2):
-			diff_squared = (log((chan1 + 1.0) / 256.0, 10) - log((chan2 + 1.0) / 256.0, 10))**2
-			sum_squared_differences += diff_squared
+	for pixel in xrange(1, len(vector_one)-1):
+		for channel in [0, 1, 2]:
+			chan1 = (vector_one[pixel][channel] + vector_one[pixel+1][channel] + vector_one[pixel-1][channel]) / 3.0
+			chan2 = (vector_two[pixel][channel] + vector_two[pixel+1][channel] + vector_two[pixel-1][channel]) / 3.0
+			#chan1 = vector_one[pixel][channel] / 255.0 
+			#chan2 = vector_two[pixel][channel] / 255.0
 			
-		#sum_squared_differences += sqrt(sum_line)
+			chan1 /= 255.0
+			chan2 /= 255.0
+			
+			diff_squared = (log(chan1 + 1.0 / 1.0, 10) - log(chan2 + 1.0, 10))**2
+			sum_squared_differences += diff_squared
 			
 	return sum_squared_differences
 
+def _match(vref,vectors):
+	distances1 = [calculate_difference(vref, v) for v in vectors]
+	distances2 = [calculate_difference(vref[0:-1], v[1:]) for v in vectors]
+	distances3 = [calculate_difference(vref[1:], v[0:-1]) for v in vectors]
+	
+	min1 = min(enumerate(distances1), key=lambda (i, v) : v)
+	min2 = min(enumerate(distances2), key=lambda (i, v) : v)
+	min3 = min(enumerate(distances3), key=lambda (i, v) : v)
+	abs_min = min([min1, min2, min3], key=lambda (i, v) : v)
+	print "(m1=%f, i1=%i) "%(min1[1], min1[0]),
+	print "(m2=%f, i2=%i) "%(min2[1], min2[0]),
+	print "(m3=%f, i3=%i) "%(min3[1], min3[0]),
+	print "(abs_m=%f, abs_i=%i) "%(abs_min[1], abs_min[0])
+	return abs_min
+	#return min1
+	
 class Shred(object):
 	def __init__(self, image):
 		self.image = image
@@ -36,17 +57,10 @@ class Shred(object):
 		self.right_vector = [data[y * width + (width-1)] for y in range(0, height)]		
 
 	def match_left(self, shreds):
-		distances = [calculate_difference(self.left_vector, v.right_vector) for v in shreds]
-		
-		print "left distances " +str([v for v in enumerate(distances)])
-		
-		return min(enumerate(distances), key=lambda (i, v) : v)
+		return _match(self.left_vector, [s.right_vector for s in shreds])
 	
 	def match_right(self, shreds):
-		distances = [calculate_difference(self.right_vector, v.left_vector) for v in shreds]
-		
-		print "right distances " +str([v for v in enumerate(distances)])
-		return min(enumerate(distances), key=lambda (i, v) : v) 
+		return _match(self.right_vector, [s.left_vector for s in shreds])
 	 
 
 def main(argv):
@@ -70,25 +84,21 @@ def main(argv):
 		shreds.append(Shred(source_region))
 	
 	
-	#print width, height
-	#print shreds[0].image.size
-	#print len(shreds[0].left_vector)
-	#print  (shreds[0].left_vector)
-
 
 	ordered_shreds = []
 	ordered_shreds.append(shreds.pop())
-	while len(shreds) > 0:
-	#for i in xrange(1):
-		(i_left, max_left) = ordered_shreds[0].match_left(shreds)
-		print "MAX LEFT :",
-		print  (i_left, max_left) 
-		(i_right, max_right) = ordered_shreds[-1].match_right(shreds)
-		print "MAX RIGHT :",
-		print (i_right, max_right)
+	#while len(shreds) > 0:
+	for i in xrange(12):
+		print "insert i-th=%i shred" % i
+		(i_left, min_left) = ordered_shreds[0].match_left(shreds)
+		print "Min LEFT :",
+		print  (min_left, i_left) 
+		(i_right, min_right) = ordered_shreds[-1].match_right(shreds)
+		print "Min RIGHT :",
+		print (min_right, i_right)
 		
 		
-		if max_left > max_right :
+		if min_left < min_right :
 			ordered_shreds.insert(0, shreds.pop(i_left))
 		else :
 			ordered_shreds.append(shreds.pop(i_right))
