@@ -6,7 +6,7 @@ import sys
 from math import sqrt,log
 
 #Configuration
-threshold = 0.001
+threshold = 0.01
 window_size = 7
 
 # Do not change from here
@@ -15,8 +15,8 @@ f_window = float(surround*2 + 1)
 
 
 def calculate_difference(v1, v2):
-	differences = 0
-	for i in xrange(surround, len(v1)-surround, surround):	
+	differences = 0.0
+	for i in xrange(surround, len(v1)-surround, max(surround,1)):	
 		sum_differences = 0.0
 		for channel in [0, 1, 2]:
 			chan1 = sum(map(lambda x: x[channel], v1[i-surround:i+surround])) / f_window
