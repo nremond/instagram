@@ -3,7 +3,7 @@
 # A naive solution for Instagram puzzle,
 # http://instagram-engineering.tumblr.com/post/12651721845/instagram-engineering-challenge-the-unshredder
 #
-# Copyright 2011 Nicolas Remond
+# Copyright 2011 Nicolas Remond (https://github.com/nire)
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
